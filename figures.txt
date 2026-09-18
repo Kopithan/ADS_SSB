@@ -1,0 +1,10 @@
+1|0|105|Reset - grants low, masters idle, slaves ready
+2|145|975|Single master - M1 write then read, Slave1 0x0155
+3|1015|1855|Single master - M1 write then read, Slave2 0x1ABC
+4|1895|2735|Single master - M2 alone, write then read, Slave2 0x1FFF
+5|2775|3185|Single master - M1 write to Slave3 local BRAM 0x2A55
+6|3225|3925|Two masters - simultaneous request, M1 priority, both complete
+7|3965|4795|Two masters - cross-master coherency on Slave1 0x0100
+8|5205|6045|SPLIT - M1 splits on Slave3, M2 uses bus, M1 resumes
+9|6085|6285|Decode error - unmapped device id 3, no ack, master times out
+10|6325|8825|Same offset in all 3 slaves - independent memories

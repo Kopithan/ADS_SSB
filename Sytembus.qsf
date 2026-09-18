@@ -1,0 +1,125 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2022  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 22.1std.0 Build 915 10/25/2022 SC Lite Edition
+# Date created = 10:41:06  September 01, 2026
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		Sytembus_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Intel recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE22F17C6
+set_global_assignment -name TOP_LEVEL_ENTITY Sytembus_top
+set_global_assignment -name SYNCHRONIZER_IDENTIFICATION "FORCED IF ASYNCHRONOUS"
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "10:41:06  SEPTEMBER 01, 2026"
+set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.0 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name NOMINAL_CORE_SUPPLY_VOLTAGE 1.2V
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim (Verilog)"
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_timing
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_symbol
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_signal_integrity
+set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_boundary_scan
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_location_assignment PIN_R8 -to clk
+set_location_assignment PIN_J15 -to rstn
+# The DE0-Nano is a 3.3 V board. Without an explicit IO_STANDARD these two
+# fell back to the bank default of 2.5 V, which is also what the "clk:
+# incomplete set of assignments" fitter warning was about.
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rstn
+
+# Quartus defaults unused pins to "AS OUTPUT DRIVING GROUND", which means every
+# other pin on the GPIO headers is actively driven LOW. A jumper that lands on
+# the wrong pin then shorts a driven output against a driven ground. While we
+# are testing this link by hand with jumper wires, make the unused pins safe.
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+
+# ---- board to board link ----
+# DE0-Nano GPIO-0 header JP1, from the board manual figure 3-8:
+#
+#   rm_tx = GPIO_00 = PIN_D3 = JP1 pin 2
+#   rm_rx = GPIO_01 = PIN_C3 = JP1 pin 4
+#   ground for the far board    JP1 pin 12 (or pin 30)
+#
+# Both signals sit in the EVEN numbered column, one directly below the other.
+# JP1 pins 1 and 3 are GPIO_0_IN0 and GPIO_0_IN1, which are different, input
+# only FPGA pins and are NOT used by this design. Bridging pin 1 to pin 2 is
+# the natural mistake and connects nothing useful.
+#
+# JP1 pin 11 is VCC_SYS (5V) and pin 29 is 3.3V. Never touch either to a GPIO:
+# these are 3.3V inputs with no 5V tolerance.
+set_location_assignment PIN_D3 -to rm_tx
+set_location_assignment PIN_C3 -to rm_rx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rm_tx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rm_rx
+# rm_rx MUST idle high. With no cable (or the far board powered down) a
+# floating input toggles on noise, the uart decodes rubbish bytes, and the
+# bridge treats any 0xA5 + 3 bytes as a REQUEST - injecting random writes
+# onto the local bus as master 3. The pull-up holds it at the uart idle
+# level so nothing is ever received.
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to rm_rx
+
+# ---- old slave3 bridge uart, previously unassigned, GPIO_0[2]/[3] ----
+set_global_assignment -name VERILOG_FILE Jtag/synthesis/submodules/altsource_probe_top.v
+set_global_assignment -name VERILOG_FILE Jtag/synthesis/Jtag.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/Sytembus.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/master_port.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/uart_bus_master.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/slave_port.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/slave.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/slave_memory_bram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/arbiter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/addr_decoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/muxes.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/bus_m2_s3.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/arbiter3.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/addr_decoder4.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/bus_m3_s4.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/bus_bridge_node.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/uart.sv
+set_global_assignment -name SDC_FILE Sytembus.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Sytembus_top.sv
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

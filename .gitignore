@@ -1,0 +1,45 @@
+# --- Quartus build output ---
+db/
+incremental_db/
+output_files/
+.qsys_edit/
+greybox_tmp/
+hc_output/
+*.qws
+*.rpt
+*.summary
+*.smsg
+*.pin
+*.sof
+*.pof
+*.jdi
+*.jic
+*.done
+*.qar
+*.bak
+
+# --- Qsys / IP generated ---
+# Jtag.qsys and Jtag.sopcinfo are kept; the generated HDL under Jtag/ is not
+Jtag/
+final/
+
+# --- ModelSim / Questa ---
+work/
+simulation/
+sim/
+transcript
+vsim.wlf
+*.wlf
+*.vcd
+modelsim.ini
+*.mti
+*.log
+
+# --- editors / OS ---
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# --- project content excluded from repo ---
+appendix/
