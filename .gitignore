@@ -43,3 +43,4 @@ Thumbs.db
 
 # --- project content excluded from repo ---
 appendix/
+appendix*.tex
